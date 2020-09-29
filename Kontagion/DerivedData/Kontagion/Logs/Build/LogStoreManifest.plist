@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>10</integer>
+	<key>logs</key>
+	<dict>
+		<key>43A9AA89-D37F-46A3-8F1A-32E1479245F7</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>43A9AA89-D37F-46A3-8F1A-32E1479245F7.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Kontagion project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Kontagion</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Build Kontagion</string>
+			<key>timeStartedRecording</key>
+			<real>610975061.46874595</real>
+			<key>timeStoppedRecording</key>
+			<real>610975061.72888505</real>
+			<key>title</key>
+			<string>Build Kontagion</string>
+			<key>uniqueIdentifier</key>
+			<string>43A9AA89-D37F-46A3-8F1A-32E1479245F7</string>
+		</dict>
+		<key>9F8FA83A-ADF0-4EE0-AF1D-835D4E0EF740</key>
+		<dict>
+			<key>className</key>
+			<string>IDEActivityLogSection</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>9F8FA83A-ADF0-4EE0-AF1D-835D4E0EF740.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Kontagion project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Kontagion</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Build Kontagion</string>
+			<key>timeStartedRecording</key>
+			<real>609419549.19946802</real>
+			<key>timeStoppedRecording</key>
+			<real>609419549.45687604</real>
+			<key>title</key>
+			<string>Build Kontagion</string>
+			<key>uniqueIdentifier</key>
+			<string>9F8FA83A-ADF0-4EE0-AF1D-835D4E0EF740</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

@@ -1,0 +1,364 @@
+
+/* StudentWorld::init() must:
+    1. Initialise the data structures used to keep track of your game's world.
+ 
+    2. Allocate and insert a Scorates object into the game world.
+        - every time a level starts or restarts, Socrates starts out fully initialised (baseline number of sprays, hp etc.)
+ 
+    3. Allocate and insert various piles of dirt, pits, and food objects into the game world as described below.
+    
+    The init() method must construct a representation of your world, and store this in a StudentWorld object. IT IS REQUIRED THAT ALL ACTORS ARE KEPT TRACK OF IN A SINGLE STL COLLECTION, e.g. Map, List, Vector. (Use a container of pointers to the actors).
+    If you like, the StudentWorld object may keep a separate pointer to the Socrates object rather than keeping a pointer to that object in the STL container. Socrates is the ONLY actor pointer allowed to not be stored in the STL container.
+ 
+    Init() will also initialise any other StudentWorld member variables it needs, such as the number of remaining bacteria that need to be destroyed on the level before Socrates can advance to the next level.
+ 
+    Here is how the init() method MUST add objects to the Petri dish if the player has reached level number L (L=1 for starting level):
+        1. Create and add a new Socrates/player object at location (0, VIEW_HEIGHT/2) to the Petri dish; this is in the left-middle of the dish.
+ 
+        2. Add L pits to the Petri dish at random locations, in a manner such that NO TWO PITS OVERLAP WITH EACH OTHER (that is to say their centers are at least 2*SPRITE_RADIUS pixels apart from each other).
+            - Each pit must be no more than 120 pixzels from the center of the Petri dish, which is at (VIEW_WIDTH/2, VIEW_HEIGHT/2)
+ 
+        3. Add max(5*L, 25) food objects to the Petri dish at random locations, in a manner such that NO TWO FOOD OBJECTS OVERLAP WITH EACH OTHER OR PREVIOUSLY-PLACED PITS (that is to say their centers are at least 2*SPRITE_RADIUS pixels apart from each other).
+            - Each food object must be no more than 120 pixzels from the center of the Petri dish, which is at (VIEW_WIDTH/2, VIEW_HEIGHT/2)
+ 
+        4. Add max(180-20*L, 20) dirt objects to the Petri dish at random locations, in a manner such that NO DIRT OBJECTS OVERLAP WITH PREVIOUSLY PLACED FOOD-OBJECTS OR PITS (that is to say their centers are at least 2*SPRITE_RADIUS pixels apart from each other). However, IT IS OKAY FOR DIRT OBJECTS TO OVERLAP WITH EACH OTHER.
+            - Each DIRT object must be no more than 120 pixels from the center of the Petri dish, which is at (VIEW_WIDTH/2, VIEW_HEIGHT/2)
+*/
+
+/* StudentWorld::move() must perform the following activities:
+   1. It must ask all of the actors that are currently active in the game world to do something (i.e. call doSomething())
+       a. If an actor does something that causes Socrates to die, then the move() method should immediately return GWSTATUS_PLAYER_DIED
+       b. Otherwise, if Socrates has cleared the current Petri dish of all bacteria AND all of the pits have disappeared (which occurs once the pit has released all of its bacteria into the Petri dish), then it's time to advance to the next level, and the function should return GWSTATUS_FINISHED_LEVEL
+
+   2. It must then delete any actors that have died during this tick.
+
+   3. It must then add any new objects to the game.
+
+   4. It must update the status text on the top of the screen with the latest information
+
+   5. Then, if Socrates has not died AND has also not completed the level, the function will return GWSTATUS_CONTINUE_GAME
+
+   move()'s three possible return values are defeind in GameConstants.h:
+       - GWSTATUS_PLAYER_DIED indicates that Socrates dies during the current tick, and instructs the provided framework code to tell the user the bad news, and restart the level if Socrates still has lives, or end the game if he's out of lives.
+
+         If move() returns this value and Socrates has lives left, the framework will prompt the player to continue the game, call cleanup() to destroy the level, call init() to reinitialise the Petri dish from scratch, and then begin calling move() once per tick.
+
+       - GWSTATUS_CONTINUE_GAME indicates that the tick completed without Socrates dying, BUT Socrates has not yet completed the current level. Therefore, gameplay will continue, and the framework will advance to the next tick.
+
+       - GWSTATUS_FINISHED_LEVEL inidcates that Socrates has completed the current level, so the current level is over. The framework will call cleanup(), then advance to the next level and call init() then call move() once per tick.
+
+   MARK: Psuedocode for the function indicated in the function body
+
+   GIVING EACH ACTOR A CHANCE TO DO SOMETHING
+   ------------------------------------------
+   During each tick of the game, each active/alive actor must have an opportunity to do something (i.e. call doSomething()).
+
+   Your move() method must iterate over every actor that is active in the game, and ask it do something by calling a member function in the actor's object named doSomething().
+
+   In each actor's doSomething() method, the object will have a chance to perform some activity based on the nature of the actor and its current state. E.g a salmonella might move one pixel left, Socrates might shoot a spray, a flame may damage a nearby pile of dirt etc.
+
+   It is possibble that one actor may destroy another actor during the current tick. If an actor has died earlier in the current tick, then the dead actor must NOT have a chance to do something during the current tick (since it's dead). Furthermore, all other live actors must not be able to interact with an actor after it has died (e.g. Socrates should not get a bonus if he steps on top of a goodie that disappeared earlier during the same tick).
+
+   Use the f key to freeze the game. Then press any key to play out a tick. To resume, press r.
+
+   
+   REMOVING DEAD ACTORS AFTER EACH TICK
+   ------------------------------------
+   At the end of each tick, your move() method mmust determine which of your actors are no longer alive, remove them from your container of active actors, and use a C++ delete expression to free the memory the object took up. E.g. if a salmonella is killed by a spray and dies, it should be noted as dead the moment it dies, and at the end of the tick, its pointer should be erased from the actor container, and then the salmonella object should be deleted.
+
+   HINT: Each actor should maintain a dead/alive status
+
+
+   ADD NEW GOODIES AS REQUIRED AFTER EACH TICK
+   -------------------------------------------
+   During each tick of the game, you may need to introduce a new goodie or fungus into the game for Socrates to pick up.
+
+   Here are the rules for doing so on level L of the game:
+       1. Calculate ChanceFungus: ChanceFungus = min(510 - L * 10, 200);
+       2. Generate a random number between [0, ChanceFungus)
+       3. If the random number is 0, then add a new fungus at a random angle/position around the circumference of the Petri dish, exactly VIEW_RADIUS pixels from the center of the Petri dish (which is at (VIEW_WIDTH/2, VIEW_HEIGHT/2)
+
+       4. Calculate ChanceGoodie: ChanceGoodie = min(510 - L * 10, 250)
+       5. Generate a random number between [0, ChanceGoodie)
+       6. If the random number is 0, then add a new goodie at a random angle/position around the circumference of the Petri dish, exactly VIEW_RADIUS pixels from the center of the Petri dish (which is at (VIEW_WIDTH/2, VIEW_HEIGHT/2)
+           a. There is a 60% chance the goodie will be a restore health goodie
+           b. There is a 30% chance the goodie will be a flamethrower goodie
+           c. There is a 10% chance the goodies will be an extra-life goodie
+*/
+
+
+/*
+    StudentWorld::cleanUp() is called by the game framework; its calling means taht Socrates has lost a life, or has completed the current level.
+ 
+    In this case, every actor in the entire game (Socrates, bacterium, goodies, dirt, spray etc.) must be deleted and removed from the StudentWorld's container of active objects, resulting in an empty level.
+ 
+    If the user has more lives left, the game framework will subsequently call init(), and the game will continue.
+ 
+    You will NOT call cleanUp() yourself.
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Kontagion has a number of different actors, including:
+    - Socrates; ch<-dmg
+    - Regular salmonella bacteria; ch<-dmg
+    - Aggressive salmonella bacteria; ch<-dmg
+    - E. coli bacteria; ch<-dmg
+    - Bacterial pits
+    - Flame projectiles; proj
+    - Spray projectiles; proj
+    - Dirt piles; dmg
+    - Food
+    - Restore health goodies; goodie<-dmg
+    - Flame thrower goodies; goodie<-dmg
+    - Extra life goodies; goodie<-dmg
+    - Fungi; goodie<-dmg
+ 
+    Each of these actor types can occupy the various levels, and interact with other game actors within the visible screen view.
+ 
+    Many actors will share things in common, for example:
+        - All actors in the game have (x,y) coordinates
+        - Many games actors have the ability to perform an action
+        - Many of them can potentially be attacked and could "die" during a tick
+        - Certain objects "activate" when they come into contact with a proper target
+ 
+    Therefore, it is important to determine the common functionalities between your different game classes, and make sure to factor out common behaviours and traits into appropriate base classes.
+ 
+    YOUR GRADE ON THIS PROJECT WILL DEPEND UPON YOUR ABILITY TO INTELLIGENTLY CREATE A SET OF CLASSES THAT FOLLOW GOOD OBJECT-ORIENTED DESIGN PRINCIPLES.
+ 
+    YOUR CLASSES MUST NEVER DUPLICATE CODE OR A DATA MEMBER - if you find youself writing the same (or largely similar) code, or duplicating member varaibles across multiple classes, then this is an indicateion that you should define a common base class, and migrate the common functionality/data to the base class.
+ 
+    HINT: When you notice the spec repeating the same text nearly identically in the following sections (e.g. restore health goodie and the flamethrower goodies; or the salmonella and e. coli bacterium), you must make sure to identify common behaviours and move these into proper base classes. NEVER duplicate behaviours across classes when they can be moved into a base class!
+ 
+    You MUST derive all of your game objects directly or indiraectly from a base class that we provide call GraphObject, e.g.:
+        class Actor : public GraphObject {
+            public:
+                ...
+        };
+ 
+        class AggressiveSalmonella : public Actor {
+            public:
+                ...
+        };
+ 
+        class Goodie : public Actor {
+            public:
+                ...
+        };
+ 
+    GraphObject is a class in the framework the helps graphically display Actors. By deriving actors from GraphObject, they will be displayed automatically on the screen by the framework.
+ 
+    The GraphObject provides several methods that may be used:
+        a. GraphObject(int imageID, double startX, double startY, int startDirection = 0, int depth = 0, double size = 1.0)
+            - This is the constructor for a new GraphObject
+            - When you construct a new GraphObject, you must specify and image ID that indicates how the GraphObject should be displayed on the screen (e.g. for Socrates this would be IID_PLAYER); all IDs can be found on pp 23
+            - You must also specify the initial (x,y) location of the object. The x value may range from [0, VIEW_WIDTH-1], the y value may range from [0, VIEW_HEIGHT-1]. Notice that these coords are passed as (x, y) or col, row
+            - You must specifiy the inital direction an object is facing as an angle between [0, 359] degrees
+            - You must specify the depth of the object. depth == 0 is in the foreground; objects with depth >= 1 are in the background. All lower depth objects cover higher depth objects, e.g. depth == 0 object covers all objects with depth >= 1
+              In Kontagion, all bacteria and Socrates are at depth == 0; all other game actors are at depth == 1
+ 
+        b. getX() and getY()
+            - Used to determine a GraphObject's current location in the level
+            - Since each GraphObject maintains its own (x, y) location, which means that your derived classes MUST NOT also have x or y member variables; they will use these functions and the moveTo() function
+ 
+        c. moveTo(double x, double y)
+            - Used to update the location of a GraphObject within the level
+ 
+        d. moveAngle(Direction angle, int units = 1)
+            - Used to move the actor the specified number of units in the specified direction
+ 
+        e. getPositionInThisDirection(Direction angle, int units, double& dx, double& dy)
+            - Returns a new (x, y) location in the specified direction and distance, based on the passed-in angle and the GraphObject's current (x, y) location
+ 
+        f. getDirection()
+            - Used to determine the direction a GraphObject is facing; returns a value [0, 359] degrees
+ 
+        g. setDirection(Direction d)
+            - Used to change the direction a GraphObject is facing and takes a value between [0, 359]
+            - For example, you could use this method and getDirection() to adjust the diretion of a bacterium when it descides to move in a new direction
+ 
+    Note that an actor can be facing in one direction, but move in a totally different direction using moveTo() or moveAngle(). The angle of movement and the angle the actor is facing are allowed to be totally different.
+    
+    THE CLASSES YOU WRITE MUST NOT STORE AN imageID VALUE OR ANY VALUE SOMEHOW RELATED/DERIVED FROM THE imageID VALUE IN ANY WAY, OR YOU WILL GET A 0 ON THE PROJECT. ONLY THE GRAPHOBJECT CLASS MAY STORE THE imageID VALUE.
+*/
+
+
+
+/* Here are the requirements you must meet when implementing the Socrates class:
+ 
+    WHAT THE SOCRATES OBJECT MUST DO WHEN IT IS CREATED
+    ---------------------------------------------------
+    When it is first created:
+        1. A Socrates object must have an imageID of IID_PLAYER
+        2. A Socrates object starts out alive
+        3. A Socrates object has a direction (that it faces) of 0 degrees (to the right)
+        4. A Socrates object has a starting position angle of 180 degrees in the Petri dish, meaning that it starts at the location X=0, Y=128, on the left side of the Petri dish.
+        5. A Socrates object has a depth of 0
+        6. A Socrates object starts with 20 spray charges and 5 flamethrower charges
+        7. A Socrates object starts out with 100 hitpoints (health)
+ 
+    
+    WHAT SOCRATES MUST DO DURING A TICK
+    -----------------------------------
+    Socrates must be given an opportunity to do something during every tick (in his doSomething() method). When given an opportunity to do something, Socrates must do the following:
+        1. Socrates must check to see if he is currently alive (i.e. hitpoints > 0). If he is not, then the doSomething() method must return IMMEDIATELY - no further steps should be performed.
+        
+        2. the doSomething() method must check to see if the player pressed a key (which the next section shows how to do). If the player pressed a key:
+                a. If the player pressed the Space key, and Socrates has at least one spray charge left, then Socrates will:
+                        i. Add a spray object 2*SPRITE_RADIUS pixels directly in front of himself (in the same direction Socrates is facing, which is always towards the center of the Petri dish)
+                       ii. Socrates's spray count must decrease by 1
+                      iii. Socrates must play the SOUND_PLAYER_SPRAY sound effect (see the StudentWorld documentation on how to do this)
+ 
+                b. If the player pressed the Enter key, and Socrates has at least one flamethrower charge left, then Socrates will:
+                        i. Add 16 flame objects exactly 2*SPRITE_RADIUS pixels away from himself, starting directly in front of Socrates, and in 22 degree increments around Socrates (to make a complete circle of flames). Each flame object must face the same direction/angle that it was created around Socrates.
+                       ii. Socrates's flamethrower count must decrease by 1
+                      iii. Socrates must play the SOUND_PLAYER_FIRE sound effect
+ 
+                c. If the user asks to move clockwise (right arrow) or anti-clockwishe (left arrow):
+                        i. Adjust Socrates's positional angle in the Petri dish eitehr clockwise or anti-clockwise by 5 degrees
+                       ii. Adjust Socrates's (x, y) coordinates around the perimeter of the Petri dish based on his new positional angle
+                      iii. Set the direction that Socrates is facing to his positional angle + 180 degrees (causing him to always face the center of the Petri dish)
+ 
+        3. If the player did NOT press a key, then:
+                - the doSomething() method must check to see if Socrates has fewer than the maximum number of spray charges (20 charges), and if he has less than the maximum, increase his available number of sprays by 1 spray.
+                - Socrates must wait one or more ticks without spraying to replenish his spray charges
+ 
+    
+    WHAT SOCRATES MUST DO IN OTHER CIRCUMSTANCES
+    --------------------------------------------
+    Socrates can be damaged. If a fungus object, or any type of bacteria overlap with Socrates, they wil cause various amounts of damage, reducing Socrates's hitpoints:
+        - Socrates must lower his hitpoints based on the amount of damage specified by the other actor
+        - If Socrates is damaged (but not killed), he must play a SOUND_PLAYER_HURT sound effect
+        - Otherwise, if Socrates's hitpoints reach zero (or below), the Socrates object must:
+                - Immediately set his status to dead
+                - Play a SOUND_PLAYER_DIE sound effect
+                - (the StudentWorld class should later detect his death, and the current level ends)
+    
+    Socrates DOES NOT block other objects from moving nearby/onto his location
+ 
+ 
+    GETTING INPUT FROM THE USER
+    ---------------------------
+    We do not use getline or cin to get a user's key press within Socrates's doSomething() method.
+ 
+    Instead, we use a function called getKey(), provided in GameWorld (from which StudentWorld) is derived), to get input from the player. This function rapidly checks to see if the user has hit a key.
+ 
+    If the user has hit a key, the function returns true, and the int variable passed to it is set to the code for the key. Otherwise, the function immediately returns false, meaning that no key was hit.
+ 
+    The function could be used as follows:
+            void Socrates::doSomething() {
+                ...
+                int ch;
+                if (getAPointerToMyStudentWorld() -> getKey(ch)) {
+                    // user hit a key during this tick!
+                    switch (ch) {
+                        case KEY_PRESS_LEFT:
+                            ... move Socrates anti-clockwise ... ;
+                            break;
+ 
+                        case KEY_PRESS_RIGHT:
+                            ... move Socrates clockwise ... ;
+                            break;
+ 
+                        case KEY_PRESS_SPACE:
+                            ... add spray in front of Socrates ... ;
+                            break;
+ 
+                        // etc.
+                    }
+                }
+                ...
+            }
+ 
+    HINT: Since your Socrates class will need to access the getKey() method in the GameWorld class (which is the base class for your StudentWorld class), your Socrates class (or more likely, one of its base classes) will need to obtain a pointer to the StudentWorld object it's active in. If you look at the code example, you'll see how Socrates's doSomething() method first gets a pointer to the world it exists in via a getWorld() call (a function in one of its base classes that returns a pointer to a StudentWorld), and then uses this pointer to call the getKey() method.
+ 
+ */
+
+
+
+
+/* Dirt piles don't really do much. Here are its requirements:
+
+    WHAT A DIRT PILE MUST DO WHEN IT IS CREATED
+    -------------------------------------------
+    When it is first created:
+        1. A dirt pile object must have an image ID of IID_Dirt
+        2. A dirt pile object must have its (x,y) location specified for it as detailed in the StudentWorld::init() section of the spec.
+            HINT: Your StudentWorld class can pass in this (x,y) location when constructing a dirt pile object
+        3. A dirt pile object has a direction of 90 degrees
+        4. A dirt pile object has a depth of 1
+        5. A dirt pile object starts out in the alive state
+        6. A dirt object has no hitpoints; its life is purely binary
+ 
+    
+    WHAT A DIRT PILE MUST DO DURING A TICK
+    --------------------------------------
+    A dirt pile must be given an opportunity to do something every tick in its doSomething() method.
+ 
+    It does fuck all every tick. Just return.
+ 
+ 
+    WHAT A DIRT PILE MUST DO IN OTHER CIRCUMSTANCES
+    -----------------------------------------------
+    Dirt piles can be damaged:
+        - a single spray or flame that hits the dirt pile will destroy it, and cause the flame/spray to dissipate
+    
+    Dirt piles block the movement of all bacteria:
+        - the Euclidean distance of the bacterium and of the dirt pile must not be less than SPRITE_WIDTH/2 pixels from each other
+ 
+    Dirt piles block the movement of all spray and flames
+ */
+
+
+
+
+
+/* Food doesn't really do much excpet sit around. Here are its requirements:
+    
+    WHAT FOOD MUST DO WHEN IT IS CREATED
+    ------------------------------------
+    When it is first created:
+        1. A food object must have an image ID of IID_FOOD
+        2. A food object must have its (x,y) location specified for it as detailed in the StudentWorld::init() section of the spec.
+            HINT: Your StudentWorld class can pass in this (x,y) location when constructing a dirt pile object
+        3. A food object has a direction of 90 degrees
+        4. A food object has a depth of 1
+        5. A food object starts out in the alive/active state
+        6. A food object has no hitpoints; it is either alive or fully dead
+ 
+ 
+    WHAT FOOD MUST DO DURING A TICK
+    -------------------------------
+    A food object must be given an opportunity to do something during every tick in its doSomething() method.
+ 
+    It also does fuck all every tick. Just return;
+ 
+ 
+    WHAT FOOD MUST DO IN OTHER CIRCUMSTANCES
+    ----------------------------------------
+    Food cannot be damaged by spray or flames.
+ 
+    Food does not block the movement of bacteria.
+    
+    Food does not block the movement of spray or flames.
+ */
