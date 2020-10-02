@@ -6,6 +6,14 @@ Kontagion is a single-player, sprite-based graphics game (externally provided).
 * Inheritance
 * Data structures
 
+Here is a screenshot of the Kontagion game, with Dirt, EColi, the bacterial pit, and some food objects present:
+
+<img width="780" alt="Kontagion" src="https://user-images.githubusercontent.com/56947176/94908889-eb2b6680-04d4-11eb-8a9b-26fe6a179afd.png">
+
+Goodies can spawn around the edge of the arena, and have power-ups for Socrates, such as restoring health, giving him flame charges, or giving him another life.
+
+Fungi spawns similarly, but does damage to Socrates instead.
+
 ## Program Design and Class Descriptions
 I chose to use an STL List to implement my actors container in the StudentWorld class. I did this because my programme did not require random access into the container, and due to the advantages STL Lists present when it comes to erasing from the middle of the container (versus a Vector).
 The 20 classes (not including GraphObject) in this project have the following hierarchy of inheritance:
@@ -96,3 +104,152 @@ Bacteria also has several protected auxiliaries:
 *	attemptToDamageSocrates(); a function that attempts to damage Socrates if the Bacteria overlaps with it, and then calls divideOrEat() if that is not possible
 
 ### Salmonella
+There are two types of Salmonella that share common functionalities.
+
+The two types of Salmonella have very similar methodologies to their actions every tick, so specificBacteriaAction() is implemented in this class as such:
+```
+aggress if salmonella is aggressive, if aggression successful, return immediately
+try and damage Socrates or divide or eat
+move if possible, if movement if successful return immediately
+find path to nearest food object
+```
+
+It also has its own implementation of damageCharacter() that calls the base class version, and plays Salmonella specific sounds for being hurt or being killed.
+
+It contains several protected auxiliaries:
+*	aggressivePathfind(); a pure virtual function that implements the aggressive behaviour of the two salmonella types, with them having unique implementations (i.e. RegularSalmonella just returns false immediately as it is not aggressive)
+*	salmonellaMovementAttempt(); a function that attempts the move a salmonella can make every tick
+*	foodPathfind(); a function that allows Salmonella to find a path (really a direction) to the nearest Food object
+*	selectNewDir(); a function that selects a random direction for the Salmonella object
+
+### RegularSalmonella
+RegularSalmonella implements its own protected auxiliary to divide: it merely calls the base class divide function but specifically makes a call to StudentWorld to spawn a new RegularSalmonella object. It also implements aggressivePathfind with an immediate return of false, as it is not aggressive.
+
+### AggressiveSalmonella
+AggressiveSalmonella also implements its own protected auxiliary to divide: it merely calls the base class divide function but specifically makes a call to StudentWorld to spawn a new AggressiveSalmonella object. It also implements aggressivePathfind with an algorithm to find the direction to Socrates if possible, then try to move to Socrates, and then try to damage him. Returning a Boolean value depending on whether the aggression is successful to implement specification requirements.
+
+### EColi
+EColi implements its own variation of the specificBacteriaAction() function with the short pseudocode:
+```
+try to damage Socrates
+set direction towards Socrates and try to move towards him
+```
+
+It also has its own implementations of damageCharacter() that calls the base class version, and plays EColi specific sounds for being hurt or being killed. As well as a divide function that calls the base class divide function but specifically makes a call to StudentWorld to spawn a new EColi object.
+
+### Goodie
+Goodies are damageable, but are unique in the way they affect Socrates. It has an identifier, isGoodie.
+
+Goodie implements its own variation of doSomething() as required, checking if the Goodie is alive and returning otherwise, and then taking specific Goodie actions (dependent on the derived type) on Socrates if he is overlapping with the Goodie, and setting itself to dead, or decreasing its remaining time in existence.
+
+It has a pure virtual specificGoodieAction() that plays the got goodie sound and increases its score by the score value of the derived type. It is pure virtual as each derived class of Goodie has its own action it performs on Socrates.
+
+It has a mutator that decrements its remaining time in existence, and an accessor that gets the specific Goodie’s score value (with each derived type of Goodie specifying what this is upon construction).
+
+### HealthGoodie
+HealthGoodie’s specificGoodieAction() implementation calls the base class version, and makes a call to the StudentWorld object to restore Socrates’s health to full.
+
+### FlameGoodie
+FlameGoodie’s specificGoodieAction() implementation calls the base class version, and makes a call to the StudentWorld object to increase Socrate’s flamethrower charges by 5.
+
+### LifeGoodie
+LifeGoodie’s specificGoodieAction() implementation calls the base class version, and makes a call to the StudentWorld object to increment Socrates’s current lives.
+
+### Fungus
+Fungus’s specificGoodieActions() does not call the base class version. It instead completely overrides the functionality to prevent a sound from picking up the Fungus from playing. It makes a call to the StudentWorld object to decrease the player score and hurt Socrates.
+
+### Dirt
+Dirt can also be damaged, but blocks movement by Bacteria, so has an isBlocker() identifier.
+It’s doSomething() method immediately returns.
+
+### Projectile
+Projectiles inherit from Actor as they cannot be damaged, but instead inflict damage. It has an identifier, isProjectile().
+
+All projectiles do similar things, so its doSomething() implementation reflects this. It starts by checking if the Projectile is alive, returning immediately if not, and then undertaking actions specific to the type of Projectile it is, and then making updates to its position and travelled distance.
+
+It also has an accessor that returns its damage token, which is specified at construction, that is used to work out how much damage to inflict to a Character.
+
+It has a protected accessor to its distance travelled, and a travelDistance() mutator. The mutator updates the travelled distance member variable, and also checks if the Projectile has met or exceeded its maximum travel distance (which is specified at construction of the derived types).
+
+### Flame
+Flame’s specificProjectileAction() is to make a call to StudentWorld to cause flame damage to any Actor that overlaps with the Flame.
+
+### Spray
+Spray’s specificProjectileAction() is to make a call to StudentWorld to cause spray damage to any Actor that overlaps with the Spray.
+
+### Food
+Food cannot be damaged but can be eaten by Bacteria for division, so it has an isEdible() identifier.
+It’s doSomething() implementation immediately returns.
+
+### Pit
+Pits are the bacteria spawner in Kontagion. It has an identifier, isBacteriaSpawner().
+It’s doSomething() implementation checks if the Pit is alive, returning immediately if not, and also checks if the Pit is empty, setting it to dead and immediately returning if it is. It also has a 1 in 50 chance each tick to spawn a Bacteria, of which each type is equally likely to be spawned on any given tick.
+
+## Testing Procedures
+I tested the functionality of my version of Kontagion through a variety of assert statements and playing of the game. 
+
+As a general test, I played my version of the game thrice, and then compared it to the source version of the game, which I also played thrice. On each playthrough, I noted different parts of the programme. On the first run, I noted the initialisation of the StudentWorld, and saw that it had identical behaviour. On the second, I noted the behaviours of the Bacterium, and believe that they matched, and also interacted with them using Socrates’s projectiles, thereby testing those as well. On the third playthrough, I experimented with the Goodies, destroying them or picking them up whenever I had the chance.
+
+Note that if a class had a pure virtual function and required instantiation to test, I temporarily removed the pure virtual function to test it.
+
+### Actor
+I tested the Actor class by setting up StudentWorld in a way that allowed me to assert the correct return values of my overlapping and distance auxiliary functions, my Actor identifiers for the foundational base class, the getWorld() and isAlive() accessors, and the setDead() mutator.
+
+### Damageable
+I tested the Damageable identifier using an assert statement. I then tested all of the Damageable objects by playing the game and trying to destroy them with Socrates’s spray and flame projectiles. I also continued to test aspects of the base Actor class with assert statements.
+
+### Character
+The Character class itself was not difficult to test, I merely used assert statements to test its accessor, mutators and identifier. I also continued to test aspects of its base classes with assert statements, such as ensuring the overlapping functions were still working.
+
+### Socrates
+Socrates is the player, so my main way to test him was by playing the game. That being said, I used assert statements to test the properties I knew he would have (i.e. correct returns for any base class methods), as well as ensure he was being properly damaged and was properly overlapping with other Characters (which I made dummy versions of).
+
+By playing the game, I tested his interactions with Goodies and other Bacteria that would try and damage him, and saw that everything was working as intended. I did similar things with Dirt piles, using this to also test his sprays and flames, and utilising the freezing and tick by tick observation of the game to ensure they were travelling the correct distance.
+
+### Bacteria
+My main way to test the Bacteria class itself was to assert the mathematics behind all of its auxiliaries, as well as assert its accessors, mutators and identifiers. Crucially, I made sure its setDead function was updating StudentWordl properly. There was not much else to test for this base class.
+
+### Salmonella
+To test the Salmonella class I made sure that damageCharacter was working as intended, as well as playing the correct sounds upon Salmonella damage or death. Its specificBacteriaAction() function was tested by observing the way a RegularSalmonella would move through the course of the game. I set up a makeshift StudentWorld with some Dirt and Food objects to see if the Salmonella would behave as expected. I also used the freezing and tick-by-tick observation of my game compared to the source game to see if the behaviours were identical. I made sure its setDead function played the right sound, and its damageCharacter function played the right sound at the right moment.
+
+### RegularSalmonella
+For RegularSalmonella, its movement is the same as the Salmonella base class, so I only had to test the divide function by forcing the RegularSalmonella to divide, and checking the position of where the new RegularSalmonella spawned. I made sure its setDead function played the right sound, and its damageCharacter function played the right sound at the right moment.
+
+### AggressiveSalmonella
+For AggressiveSalmonella, the crux of its movement is the same as the Salmonella base class. I tested the aggressivePathfind function by creating a makeshift StudentWorld that had food in it as well as Socrates. I also used the freezing and tick-by-tick observation of my game compared to the source game to see if the behaviours were identical. I also tested the divide function in a similar way to RegularSalmonella. I made sure its setDead function played the right sound, and its damageCharacter function played the right sound at the right moment.
+
+### EColi
+As EColi had a unique movement action, I tested it by creating a makeshift StudentWorld that had food in it as well as Socrates. I also used the freezing and tick-by-tick observation of my game compared to the source game to see if the behaviours were identical. I also tested the divide function in a similar way to RegularSalmonella.
+
+### Goodie
+For Goodies, I tested them by trying to destroy them as I played the game, as well as picking them up and seeing if a sound was played. I also roughly compared the spawn rates of Goodies with that of the source game, and didn’t notice any problems. I also set specific lifetimes for each Goodie to ensure that was working as intended.
+
+### HealthGoodie
+HealthGoodie was tested the same way as its base class, but I also made sure to assert Socrates’s properties had been updated properly.
+
+### FlameGoodie
+FlameGoodie was tested the same way as its base class, but I also made sure to assert Socrates’s properties had been updated properly.
+
+### LifeGoodie
+LifeGoodie was tested the same way as its base class, but I also made sure to assert Socrates’s properties had been updated properly.
+
+### Fungus
+Fungus was tested the same way as its base class, but I also made sure to assert Socrates’s properties had been updated properly. In addition, I made sure that no sound was played upon picking it up, which is contrary to what the base class defines.
+
+### Dirt
+Dirt did nothing every tick. This was easy to test. But I made sure that it was destroyable using Socrates’s spray and flames.
+
+### Projectile
+Projectiles were tested the tick-by-tick observation of the game to ensure that they travelled their specified distance (how many ticks they lasted for).
+
+### Flame
+Flame was tested as specified in the base class, but I also used the tick-by-tick observation to ensure the correct number of Flames were generated upon a single enter press. I also used assert statements to ensure they were doing the right amount of damage.
+
+### Spray
+Spray was tested as specified in the base class, but I also used assert statements to ensure they were doing the right amount of damage.
+
+### Food
+Food did nothing every tick. This was easy to test. But I made sure that it was being picked up by bacteria that ran over it, and that their food eaten counts were increasing accordingly.
+
+### Pit
+Pits were tested using assert statements to ensure that the correct number of Bacteria were being produced over a Pit’s lifetime.
