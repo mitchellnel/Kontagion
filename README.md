@@ -6,7 +6,7 @@ Kontagion is a single-player, sprite-based graphics game (externally provided).
 * Inheritance
 * Data structures
 
-Here is a screenshot of the Kontagion game, with Dirt, EColi, the bacterial pit, and some food objects present:
+Here is a screenshot of the Kontagion game, with Socrates, Dirt, EColi, Salmonella, the bacterial pit, and some food objects present:
 
 <img width="780" alt="Kontagion" src="https://user-images.githubusercontent.com/56947176/94908889-eb2b6680-04d4-11eb-8a9b-26fe6a179afd.png">
 
